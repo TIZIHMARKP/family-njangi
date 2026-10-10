@@ -5,8 +5,9 @@ import { INjangi } from "./interfaces/INjangi.sol";
 import { NjangiTypes } from "./types/NjangiTypes.sol";
 import {NjangiErrors} from "./errors/NjangiErrors.sol";
 import {NjangiConstants} from "./constants/NjangiConstants.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-abstract contract Njangi is INjangi {
+contract Njangi is INjangi ReentrancyGuard {
 
     // =========== STATE =====================
     uint256 private s_groupCounter;            // grp counts in IDs
@@ -83,7 +84,102 @@ abstract contract Njangi is INjangi {
 
     }
 
-    // ===== VIEW FUNCTIONS ===============
+
+    // ================ CONTRIBUTIONS ====================
+
+    function contribute(uint256 groupId) external payable override groupExists(groupId){
+        NjangiTypes.Group storage group = s_groups[groupId];
+
+        
+        if (group.status != NjangiTypes.GroupStatus.Active) { // group must be active
+            revert NjangiErrors.GroupNotActive();
+        }
+
+        if (!s_isMember[groupId][msg.sender]) {  // caller must be a member
+            revert NjangiErrors.NotAMember();
+        }
+
+        if (msg.value != group.contributionAmount) {  // must send exactly the contribution amount
+            revert NjangiErrors.IncorrectContributionAmount();
+        }
+
+        uint256 round = group.currentRound;
+        if (s_paidThisRound[groupId][round][msg.sender]) {  // must not have already contributed this round
+            revert NjangiErrors.AlreadyContributed();
+        }
+
+        s_paidThisRound[groupId][round][msg.sender] = true;  // record contribution
+        group.totalContributedThisRound += msg.value;
+
+        emit ContributionMade(groupId, msg.sender, msg.value, round);
+    }
+
+    // ================ PAYOUT ====================
+
+    function payout(uint256 groupId) external override groupExists(groupId) nonReentrant {
+        NjangiTypes.Group storage group = s_groups[groupId];
+
+        if (group.status != NjangiTypes.GroupStatus.Active) {
+            revert NjangiErrors.GroupNotActive();
+        }
+
+        // the round must be full
+        uint256 round = group.currentRound;
+        uint256 expectedPot = group.contributionAmount * group.memberCount;
+        if (group.totalContributedThisRound != expectedPot) {
+            revert NjangiErrors.RoundNotFull();
+        }
+
+        address recipient = s_members[groupId][round];   // determine recipient
+        uint256 payoutAmount = group.totalContributedThisRound;
+
+        group.totalContributedThisRound = 0;  // reset round contribution counter before the transfer
+
+        group.currentRound = round + 1;  // next round
+
+        if (group.currentRound == group.memberCount) {  // check if the group just finished its last round so as to pay the recipient and move to the next round
+            group.status = NjangiTypes.GroupStatus.Completed;
+        }
+
+        emit PayoutSent(groupId, recipient, payoutAmount, round);
+
+        // send the pot
+        (bool success, ) = payable(recipient).call{value: payoutAmount}("");
+        if (!success) revert NjangiErrors.TransferFailed();
+
+        emit RoundAdvanced(groupId, group.currentRound);
+
+        if (group.status == NjangiTypes.GroupStatus.Completed) {
+            emit GroupCompleted(groupId);
+        }
+    }
+
+    // ================ CANCEL GROUP ====================
+    function cancelGroup(uint256 groupId) external override groupExists(groupId){
+        NjangiTypes.Group storage group = s_groups[groupId];
+
+        if (msg.sender != group.creator) {      // only the creator can cancel
+            revert NjangiErrors.NotGroupCreator();
+        }
+
+        if (group.currentRound != 0 || group.totalContributedThisRound != 0) { // can only cancel before any contribution has been made
+            revert NjangiErrors.CannotCancelAfterStart();
+        }
+
+        group.status = NjangiTypes.GroupStatus.Cancelled;
+
+        emit GroupCancelled(groupId);
+    }
+
+
+
+
+
+
+
+
+
+    // ========= VIEW FUNCTIONS ====================
     function getGroup(uint256 groupId) external view override groupExists(groupId) 
         returns (NjangiTypes.Group memory){
         return s_groups[groupId];
