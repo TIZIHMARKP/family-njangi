@@ -7,7 +7,7 @@ import {NjangiErrors} from "./errors/NjangiErrors.sol";
 import {NjangiConstants} from "./constants/NjangiConstants.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Njangi is INjangi ReentrancyGuard {
+contract Njangi is INjangi, ReentrancyGuard {
 
     // =========== STATE =====================
     uint256 private s_groupCounter;            // grp counts in IDs
