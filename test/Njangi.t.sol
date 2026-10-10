@@ -6,6 +6,7 @@ import {Njangi} from "../src/Njangi.sol";
 import {NjangiTypes} from "../src/types/NjangiTypes.sol";
 import {NjangiErrors} from "../src/errors/NjangiErrors.sol";
 import {NjangiConstants} from "../src/constants/NjangiConstants.sol";
+import {NjangiEvents} from "../src/events/NjangiEvents.sol";
 // import {INjangi} from "../src/interfaces/INjangi.sol";
 
 abstract contract BaseTest is Test {
@@ -73,7 +74,9 @@ contract CreateGroupTest is BaseTest {
 
         vm.expectEmit(true, true, false, true);
         // emit INjangi.GroupCreated(1, creator, "Family Njangi", CONTRIBUTION, 3);
-        emit Njangi.GroupCreated(1, creator, "Family Njangi", CONTRIBUTION, 3);
+        // emit Njangi.GroupCreated(1, creator, "Family Njangi", CONTRIBUTION, 3);
+        emit NjangiEvents.GroupCreated(1, creator, "Family Njangi", CONTRIBUTION, 3);
+
 
         vm.prank(creator);
         njangi.createGroup("Family Njangi", CONTRIBUTION, members);
