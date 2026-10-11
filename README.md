@@ -1,4 +1,4 @@
-# Njangi Project
+# Family Njangi Project
 
 A rotating savings and credit association (ROSCA) built on-chain. This is the Njangi system many of us know in Bamenda and across Cameroon, but with the money held by a smart contract instead of a treasurer
 
