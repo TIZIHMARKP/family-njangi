@@ -204,7 +204,7 @@ contract ContributeTest is BaseTest {
         groupId = njangi.createGroup("Family Njangi", CONTRIBUTION, members);
     }
 
-    // ------ happy path ----------
+    // ------ error free path  ----------
 
     function testContributeHappyPath() public {
         vm.deal(tizih, 1 ether);
@@ -326,7 +326,7 @@ contract PayoutTest is BaseTest {
         njangi.contribute{value: CONTRIBUTION}(groupId);
     }
 
-        // ------ happy path ----------
+        // ------ error free path  ----------
 
     function testPayoutSendsPotToFirstMember() public {
         _allContributeForCurrentRound();
@@ -447,7 +447,7 @@ contract CancelGroupTest is BaseTest {
         groupId = njangi.createGroup("Family Njangi", CONTRIBUTION, members);
     }
 
-    // ------ happy path ----------
+    // ------ error free path ----------
 
     function testCreatorCanCancelBeforeContributions() public {
         vm.expectEmit(true, false, false, false);
